@@ -3,7 +3,7 @@ from .redis_key import RedisKey
 
 
 class RedisSet(RedisKey):
-    async def length(self) -> int:
+    async def size(self) -> int:
         return await self._redis.scard(self._key)
 
     async def get_all(self, encoding='utf-8') -> Set:
