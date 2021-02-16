@@ -4,6 +4,9 @@ from .redis_key import RedisKey
 
 
 class RedisList(RedisKey):
+    async def length(self) -> int:
+        return await self._redis.llen(self._key)
+
     async def get_range(self, start: int=0, stop: int=-1, encoding='utf-8') -> List:
         return await self._redis.lrange(self._key, start, stop, encoding=encoding)
 

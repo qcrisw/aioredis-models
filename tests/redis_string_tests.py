@@ -9,6 +9,16 @@ class RedisStringTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIsInstance(redis_string, RedisString)
 
+    async def test_length_returns_length(self):
+        redis = AsyncMock()
+        key = MagicMock()
+        redis_string = RedisString(redis, key)
+
+        result = await redis_string.length()
+
+        redis.strlen.assert_called_once_with(key)
+        self.assertEqual(result, redis.strlen.return_value)
+
     async def test_get_gets(self):
         redis = AsyncMock()
         key = MagicMock()
