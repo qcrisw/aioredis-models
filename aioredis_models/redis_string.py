@@ -3,6 +3,9 @@ from .redis_key import RedisKey
 
 
 class RedisString(RedisKey):
+    async def length(self) -> int:
+        return await self._redis.strlen(self._key)
+
     async def get(self) -> Any:
         return await self._redis.get(self._key)
 

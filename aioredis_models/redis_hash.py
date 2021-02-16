@@ -3,6 +3,12 @@ from .redis_key import RedisKey
 
 
 class RedisHash(RedisKey):
+    async def length(self) -> int:
+        return await self._redis.hlen(self._key)
+
+    async def field_length(self, field: str) -> int:
+        return await self._redis.hstrlen(self._key, field)
+
     async def field_exists(self, field: str) -> bool:
         return await self._redis.hexists(self._key, field)
 

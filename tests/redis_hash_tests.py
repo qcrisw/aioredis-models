@@ -9,6 +9,27 @@ class RedisHashTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIsInstance(redis_hash, RedisHash)
 
+    async def test_length_returns_length(self):
+        redis = AsyncMock()
+        key = MagicMock()
+        redis_hash = RedisHash(redis, key)
+
+        result = await redis_hash.length()
+
+        redis.hlen.assert_called_once_with(key)
+        self.assertEqual(result, redis.hlen.return_value)
+
+    async def test_field_length_returns_field_length(self):
+        redis = AsyncMock()
+        key = MagicMock()
+        redis_hash = RedisHash(redis, key)
+        field = MagicMock()
+
+        result = await redis_hash.field_length(field)
+
+        redis.hstrlen.assert_called_once_with(key, field)
+        self.assertEqual(result, redis.hstrlen.return_value)
+
     async def test_field_exists_works_correctly(self):
         redis = AsyncMock()
         key = MagicMock()
