@@ -17,24 +17,24 @@ class RedisList(RedisKey):
         func = self._redis.rpush if reverse else self._redis.lpush
         return await func(self._key, *value)
 
-    async def pop(self, reverse: bool=False, block: bool=False, timeout: int=0, encoding='utf-8'):
+    async def pop(self, reverse: bool=False, block: bool=False, timeout_seconds: int=0, encoding='utf-8'):
         if reverse and block:
-            func = partial(self._redis.brpop, timeout=timeout)
+            func = partial(self._redis.brpop, timeout=timeout_seconds)
         elif reverse and not block:
             func = self._redis.rpop
         elif block:
-            func = partial(self._redis.blpop, timeout=timeout)
+            func = partial(self._redis.blpop, timeout=timeout_seconds)
         else:
             func = self._redis.lpop
 
         return await func(self._key, encoding=encoding)
 
-    async def move(self, destination_key: str, block: bool=False, timeout: int=0, encoding='utf-8'):
-        func = partial(self._redis.brpoplpush, timeout=timeout) if block else self._redis.rpoplpush
+    async def move(self, destination_key: str, block: bool=False, timeout_seconds: int=0, encoding='utf-8'):
+        func = partial(self._redis.brpoplpush, timeout=timeout_seconds) if block else self._redis.rpoplpush
         return await func(self._key, destination_key, encoding=encoding)
 
-    async def requeue(self, block: bool=False, timeout: int=0, encoding='utf-8'):
-        return await self.move(self._key, block=block, timeout=timeout, encoding=encoding)
+    async def requeue(self, block: bool=False, timeout_seconds: int=0, encoding='utf-8'):
+        return await self.move(self._key, block=block, timeout_seconds=timeout_seconds, encoding=encoding)
 
     async def remove(self, value: str, count: int=0):
         return await self._redis.lrem(self._key, count, value)
