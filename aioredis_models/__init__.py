@@ -1,3 +1,13 @@
+"""
+This module contains the following classes:
+- RedisKey
+- RedisList
+- RedisHash
+- RedisSet
+- RedisString
+- RedisDoubleHash
+"""
+
 from .redis_key import RedisKey
 from .redis_list import RedisList
 from .redis_hash import RedisHash
