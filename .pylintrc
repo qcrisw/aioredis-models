@@ -135,7 +135,6 @@ disable=print-statement,
         exception-escape,
         comprehension-escape,
         # disable for now, will add when code is ready
-        missing-docstring,
         # disable for now, might reconsider later
         too-many-instance-attributes,
         too-many-arguments,
