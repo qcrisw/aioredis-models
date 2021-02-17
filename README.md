@@ -12,6 +12,10 @@ A wrapper over [aioredis](https://github.com/aio-libs/aioredis) that models
 - [x] Sets
 - [x] Double hash maps
 
+## Documentation
+
+Detailed documentation is available at https://aioredis-models.readthedocs.io/.
+
 ## Usage
 
 Construction of all data structures requires at least an `aioredis.Redis` instance
