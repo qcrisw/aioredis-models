@@ -38,7 +38,8 @@ async def do_work(redis_string: RedisString):
 
 The library is currently in very early stages of development and there is a lot of room for growth.
 As such, contributions are welcome. To contribute, create a pull request into the `main` branch.
-Make sure the tests pass and there are no linting errors.
+Make sure the tests pass and there are no linting errors. Also, please update documentation, if
+needed.
 
 ### Testing
 
@@ -59,6 +60,16 @@ To run without Docker:
 ``` bash
 pip3 install -r requirements.txt
 pylint aioredis_models
+```
+
+### Documentation
+
+Documentation can get regenerated using [`./generate-docs.sh`](./generate-docs.sh) script.
+To run without Docker:
+
+``` bash
+pip3 install -r requirements.txt
+sphinx-apidoc -f -o docs/source aioredis_models && (cd docs && make html)
 ```
 
 ## License

@@ -5,7 +5,7 @@ LABEL maintainer="QCRI Software Group <qcriswgroup@hbku.edu.qa>"
 WORKDIR /home
 
 # Needed by some of the dependencies.
-RUN apk add gcc musl-dev
+RUN apk add gcc musl-dev make
 
 RUN pip3 install --upgrade pip
 COPY /requirements.txt /home

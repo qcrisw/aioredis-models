@@ -10,6 +10,8 @@ Welcome to aioredis_models's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   modules
+
 
 
 Indices and tables
