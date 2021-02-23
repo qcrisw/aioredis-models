@@ -1,4 +1,4 @@
-name: Ensure Python Code Quality
+name: quality-check
 
 on:
   push:
