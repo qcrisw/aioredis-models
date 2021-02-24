@@ -12,6 +12,11 @@ A wrapper over [aioredis](https://github.com/aio-libs/aioredis) that models
 - [x] Sets
 - [x] Double hash maps
 
+## Requirements
+
+- Python 3.6+
+- [aioredis](https://github.com/aio-libs/aioredis) requirements
+
 ## Documentation
 
 Detailed documentation is available at https://aioredis-models.readthedocs.io/.
