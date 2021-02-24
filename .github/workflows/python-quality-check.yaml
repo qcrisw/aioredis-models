@@ -23,5 +23,12 @@ jobs:
         run: pip install -r requirements.txt
       - name: Run unit tests
         run: tox
+      - name: Upload coverage to Codecov
+        if: success() && github.ref == 'refs/heads/main'
+        uses: codecov/codecov-action@v1
+        with:
+          directory: ./test-reports/
+          flags: unittests
+          fail_ci_if_error: true
       - name: Lint Python code
         run: pylint aioredis_models
