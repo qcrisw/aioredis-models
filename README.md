@@ -3,6 +3,14 @@
 A wrapper over [aioredis](https://github.com/aio-libs/aioredis) that models
 [Redis](https://redis.io/) data as simple data structures.
 
+![GitHub](https://img.shields.io/github/license/qcrisw/aioredis-models)
+![PyPI](https://img.shields.io/pypi/v/aioredis_models)
+
+![GitHub Workflow Status (event)](https://img.shields.io/github/workflow/status/qcrisw/aioredis-models/quality-check?event=push&label=quality-checks)
+[![Documentation Status](https://readthedocs.org/projects/aioredis-models/badge/?version=latest)](https://aioredis-models.readthedocs.io/en/latest/?badge=latest)
+[![codecov](https://codecov.io/gh/qcrisw/aioredis-models/branch/main/graph/badge.svg?token=5K5M77QXO5)](https://codecov.io/gh/qcrisw/aioredis-models)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/qcrisw/aioredis-models/publish-package?label=package-publish)
+
 ## Supported data structures
 
 - [x] Keys
@@ -11,6 +19,11 @@ A wrapper over [aioredis](https://github.com/aio-libs/aioredis) that models
 - [x] Hash maps
 - [x] Sets
 - [x] Double hash maps
+
+## Requirements
+
+- Python 3.6+
+- [aioredis](https://github.com/aio-libs/aioredis) requirements
 
 ## Documentation
 
