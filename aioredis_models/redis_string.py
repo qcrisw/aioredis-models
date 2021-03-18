@@ -22,7 +22,7 @@ class RedisString(RedisKey):
 
         return await self._redis.strlen(self._key)
 
-    async def get(self) -> str:
+    async def get(self, encoding='utf-8') -> str:
         """
         Gets the stored value of the string.
 
@@ -30,7 +30,7 @@ class RedisString(RedisKey):
             str: The value of the string.
         """
 
-        return await self._redis.get(self._key)
+        return await self._redis.get(self._key, encoding=encoding)
 
     async def set(
         self,
