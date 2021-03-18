@@ -23,11 +23,22 @@ class RedisStringTests(unittest.IsolatedAsyncioTestCase):
         redis = AsyncMock()
         key = MagicMock()
         redis_string = RedisString(redis, key)
+        encoding = MagicMock()
+
+        result = await redis_string.get(encoding=encoding)
+
+        self.assertEqual(result, redis.get.return_value)
+        redis.get.assert_awaited_once_with(key, encoding=encoding)
+
+    async def test_get_with_default_encoding_uses_utf8(self):
+        redis = AsyncMock()
+        key = MagicMock()
+        redis_string = RedisString(redis, key)
 
         result = await redis_string.get()
 
         self.assertEqual(result, redis.get.return_value)
-        redis.get.assert_awaited_once_with(key)
+        redis.get.assert_awaited_once_with(key, encoding='utf-8')
 
     async def test_set_with_if_exist_equals_true_sets_correctly(self):
         redis = AsyncMock()
