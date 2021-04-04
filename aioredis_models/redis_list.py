@@ -3,7 +3,7 @@
 """
 
 from functools import partial
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, Awaitable, AsyncIterator
 from .redis_key import RedisKey
 
 
@@ -12,7 +12,7 @@ class RedisList(RedisKey):
     Represents a list store in Redis.
     """
 
-    async def length(self) -> int:
+    async def length(self) -> Awaitable[int]:
         """
         Gets the length of the list.
 
@@ -22,7 +22,7 @@ class RedisList(RedisKey):
 
         return await self._redis.llen(self._key)
 
-    async def get_range(self, start: int=0, stop: int=-1, encoding='utf-8') -> List:
+    async def get_range(self, start: int=0, stop: int=-1, encoding='utf-8') -> Awaitable[List]:
         """
         Gets the given sub-sequence of the list.
 
@@ -39,7 +39,31 @@ class RedisList(RedisKey):
 
         return await self._redis.lrange(self._key, start, stop, encoding=encoding)
 
-    async def push(self, *value: Tuple, reverse: bool=False) -> int:
+    async def enumerate(self, batch_size: int=0, encoding='utf-8') -> AsyncIterator[Any]:
+        """
+        Enumerates the items of this list in batches.
+
+        Args:
+            batch_size (int, optional): The number of items to get in each batch.
+                A value of 0 or None indicates a batch size equal to the full length of the list.
+                Defaults to 0.
+            encoding (str, optional): The encoding to use for the items. Defaults to 'utf-8'.
+
+        Returns:
+            AsyncIterator[Any]: An iterator that can be used to iterate over the result.
+        """
+        start = 0
+        while True:
+            stop = (start + batch_size - 1) if batch_size else -1
+            len_result = 0
+            for item in await self.get_range(start, stop, encoding=encoding):
+                len_result += 1
+                yield item
+            start = start + len_result
+            if stop == -1 or start <= stop:
+                break
+
+    async def push(self, *value: Tuple, reverse: bool=False) -> Awaitable[int]:
         """
         Pushes the given values into the list.
 
@@ -64,7 +88,7 @@ class RedisList(RedisKey):
         block: bool=False,
         timeout_seconds: int=0,
         encoding='utf-8'
-    ) -> Any:
+    ) -> Awaitable[Any]:
         """
         Pops a value from the list.
 
@@ -99,7 +123,7 @@ class RedisList(RedisKey):
         block: bool=False,
         timeout_seconds: int=0,
         encoding='utf-8'
-    ) -> Any:
+    ) -> Awaitable[Any]:
         """Moves a value from the end of one list to the beginning of another.
 
         Args:
@@ -121,7 +145,12 @@ class RedisList(RedisKey):
         ) if block else self._redis.rpoplpush
         return await func(self._key, destination_key, encoding=encoding)
 
-    async def requeue(self, block: bool=False, timeout_seconds: int=0, encoding='utf-8') -> Any:
+    async def requeue(
+        self,
+        block: bool=False,
+        timeout_seconds: int=0,
+        encoding='utf-8'
+    ) -> Awaitable[Any]:
         """
         Removes a value from the beginning of the list and pushes it to the end of the same list.
 
@@ -144,7 +173,7 @@ class RedisList(RedisKey):
             encoding=encoding
         )
 
-    async def remove(self, value: str, count: int=0) -> int:
+    async def remove(self, value: str, count: int=0) -> Awaitable[int]:
         """
         Removes occurrences of the given value from the list.
 

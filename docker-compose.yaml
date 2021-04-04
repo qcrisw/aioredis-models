@@ -1,0 +1,24 @@
+version: "3.9"
+services:
+  redis:
+    image: redis:6.2
+  unit-test:
+    build: .
+    command: tox -e unit-py39
+    volumes:
+    - ./test-reports:/home/test-reports
+  lint:
+    build: .
+    command: pylint aioredis_models
+  generate-docs:
+    build: .
+    command: sphinx-apidoc -f -o docs/source aioredis_models && (cd docs && make html)
+    volumes:
+    - ./docs:/home/docs
+  e2e-test:
+    build: .
+    command: tox -e e2e-py39
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+    - redis

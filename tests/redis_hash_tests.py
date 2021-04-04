@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock, AsyncMock, call
 from aioredis_models.redis_hash import RedisHash
 
 
@@ -105,6 +105,103 @@ class RedisHashTests(unittest.IsolatedAsyncioTestCase):
         await redis_hash.get(field)
 
         redis.hget.assert_awaited_once_with(key, field, encoding='utf-8')
+
+    async def test_enumerate_with_none_encoding_enumerates_items(self):
+        redis = AsyncMock()
+        items = [
+            (MagicMock(), MagicMock()) for _ in range(6)
+        ]
+        scans = [
+            (1,
+                items[:2]),
+            (2, items[2:5]),
+            (0, items[5:])
+        ]
+        redis.hscan.side_effect = scans
+        key = MagicMock()
+        field_pattern = MagicMock()
+        batch_size = MagicMock()
+        redis_hash= RedisHash(redis, key)
+
+        result = [item async for item in redis_hash.enumerate(
+            field_pattern=field_pattern,
+            batch_size=batch_size,
+            encoding=None
+        )]
+
+        self.assertEqual(result, items)
+        redis.hscan.assert_has_awaits([
+            call(key, cursor=cursor, match=field_pattern, count=batch_size) \
+                for cursor in ['0', 1, 2]
+        ])
+
+    async def test_enumerate_with_default_encoding_enumerates_items_with_utf8(self):
+        redis = AsyncMock()
+        items = [
+            (MagicMock(), MagicMock()) for _ in range(6)
+        ]
+        scans = [
+            (1,
+                items[:2]),
+            (2, items[2:5]),
+            (0, items[5:])
+        ]
+        redis.hscan.side_effect = scans
+        key = MagicMock()
+        field_pattern = MagicMock()
+        batch_size = MagicMock()
+        redis_hash= RedisHash(redis, key)
+
+        result = [item async for item in redis_hash.enumerate(
+            field_pattern=field_pattern,
+            batch_size=batch_size
+        )]
+
+        self.assertEqual(result, [
+            (field.decode.return_value, value.decode.return_value) for field, value in items
+        ])
+        for field, value in items:
+            field.decode.assert_called_once_with('utf-8')
+            value.decode.assert_called_once_with('utf-8')
+        redis.hscan.assert_has_awaits([
+            call(key, cursor=cursor, match=field_pattern, count=batch_size) \
+                for cursor in ['0', 1, 2]
+        ])
+
+    async def test_enumerate_with_provided_encoding_enumerates_items_with_encoding(self):
+        redis = AsyncMock()
+        items = [
+            (MagicMock(), MagicMock()) for _ in range(6)
+        ]
+        scans = [
+            (1,
+                items[:2]),
+            (2, items[2:5]),
+            (0, items[5:])
+        ]
+        redis.hscan.side_effect = scans
+        key = MagicMock()
+        field_pattern = MagicMock()
+        batch_size = MagicMock()
+        encoding=MagicMock()
+        redis_hash= RedisHash(redis, key)
+
+        result = [item async for item in redis_hash.enumerate(
+            field_pattern=field_pattern,
+            batch_size=batch_size,
+            encoding=encoding
+        )]
+
+        self.assertEqual(result, [
+            (field.decode.return_value, value.decode.return_value) for field, value in items
+        ])
+        for field, value in items:
+            field.decode.assert_called_once_with(encoding)
+            value.decode.assert_called_once_with(encoding)
+        redis.hscan.assert_has_awaits([
+            call(key, cursor=cursor, match=field_pattern, count=batch_size) \
+                for cursor in ['0', 1, 2]
+        ])
 
     async def test_set_all_with_none_value_does_nothing(self):
         key = MagicMock()

@@ -22,7 +22,7 @@ jobs:
       - name: Install requirements
         run: pip install -r requirements.txt
       - name: Run unit tests
-        run: tox
+        run: tox -e unit-py39
       - name: Upload coverage to Codecov
         if: success() && github.ref == 'refs/heads/main'
         uses: codecov/codecov-action@v1

@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock, AsyncMock, call
 from aioredis_models.redis_list import RedisList
 
 
@@ -41,6 +41,51 @@ class RedisListTests(unittest.IsolatedAsyncioTestCase):
 
         redis.lrange.assert_awaited_once_with(key, start, stop, encoding=encoding)
         self.assertEqual(result, redis.lrange.return_value)
+
+    async def test_enumerate_with_batch_size_zero_gets_the_list_at_once(self):
+        items = [MagicMock() for _ in range(12)]
+        redis = AsyncMock()
+        redis.lrange.return_value = items
+        key = MagicMock()
+        redis_list = RedisList(redis, key)
+
+        result = [item async for item in redis_list.enumerate()]
+
+        self.assertEqual(result, items)
+        redis.lrange.assert_awaited_once_with(key, 0, -1, encoding='utf-8')
+
+    async def test_enumerate_gets_correct_batches(self):
+        items = [MagicMock() for _ in range(9)]
+        redis = AsyncMock()
+        redis.lrange.side_effect = lambda _, start, stop, **__: items[start:stop+1]
+        key = MagicMock()
+        encoding = MagicMock()
+        redis_list = RedisList(redis, key)
+
+        result = [item async for item in redis_list.enumerate(batch_size=5, encoding=encoding)]
+
+        self.assertEqual(result, items)
+        redis.lrange.assert_has_awaits([
+            call(key, 0, 4, encoding=encoding),
+            call(key, 5, 9, encoding=encoding)
+        ])
+
+    async def test_enumerate_when_len_divisible_by_batch_size_gets_correct_batches(self):
+        items = [MagicMock() for _ in range(10)]
+        redis = AsyncMock()
+        redis.lrange.side_effect = lambda _, start, stop, **__: items[start:stop+1]
+        key = MagicMock()
+        encoding = MagicMock()
+        redis_list = RedisList(redis, key)
+
+        result = [item async for item in redis_list.enumerate(batch_size=5, encoding=encoding)]
+
+        self.assertEqual(result, items)
+        redis.lrange.assert_has_awaits([
+            call(key, 0, 4, encoding=encoding),
+            call(key, 5, 9, encoding=encoding),
+            call(key, 10, 14, encoding=encoding)
+        ])
 
     async def test_push_with_none_value_does_nothing(self):
         key = MagicMock()
