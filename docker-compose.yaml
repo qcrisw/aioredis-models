@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+  unit-test:
+    build: .
+    command: tox
+    volumes:
+    - ./test-reports:/home/test-reports
+  lint:
+    build: .
+    command: pylint aioredis_models
+  generate-docs:
+    build: .
+    command: sphinx-apidoc -f -o docs/source aioredis_models && (cd docs && make html)
+    volumes:
+    - ./docs:/home/docs
