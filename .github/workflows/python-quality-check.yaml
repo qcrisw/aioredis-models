@@ -15,20 +15,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-      - name: Install requirements
-        run: pip install -r requirements.txt
       - name: Run unit tests
-        run: tox -e unit-py39
+        run: docker-compose up --build unit-test
       - name: Upload coverage to Codecov
         if: success() && github.ref == 'refs/heads/main'
         uses: codecov/codecov-action@v1
         with:
           directory: ./test-reports/
-          flags: unittests
+          flags: unit-tests
+          fail_ci_if_error: true
+      - name: Run e2e tests
+        run: docker-compose up --build e2e-test
+      - name: Upload coverage to Codecov
+        if: success() && github.ref == 'refs/heads/main'
+        uses: codecov/codecov-action@v1
+        with:
+          directory: ./e2e-reports/
+          flags: e2e-tests
           fail_ci_if_error: true
       - name: Lint Python code
-        run: pylint aioredis_models
+        run: docker-compose up --build lint

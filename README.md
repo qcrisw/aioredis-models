@@ -8,7 +8,7 @@ A wrapper over [aioredis](https://github.com/aio-libs/aioredis) that models
 
 ![GitHub Workflow Status (event)](https://img.shields.io/github/workflow/status/qcrisw/aioredis-models/quality-check?event=push&label=quality-checks)
 [![Documentation Status](https://readthedocs.org/projects/aioredis-models/badge/?version=latest)](https://aioredis-models.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/qcrisw/aioredis-models/branch/main/graph/badge.svg?token=5K5M77QXO5)](https://codecov.io/gh/qcrisw/aioredis-models)
+[![codecov](https://codecov.io/gh/qcrisw/aioredis-models/branch/main/graph/badge.svg?token=5K5M77QXO5&flag=unit-tests)](https://codecov.io/gh/qcrisw/aioredis-models)
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/qcrisw/aioredis-models/publish-package?label=package-publish)
 
 ## Supported data structures

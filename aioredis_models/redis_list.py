@@ -39,11 +39,20 @@ class RedisList(RedisKey):
 
         return await self._redis.lrange(self._key, start, stop, encoding=encoding)
 
-    async def enumerate(self, batch_size: int=0, encoding='utf-8') -> AsyncIterator[Any]:
+    async def enumerate(
+        self,
+        start: int=0,
+        stop: int=None,
+        batch_size: int=0,
+        encoding='utf-8'
+    ) -> AsyncIterator[Any]:
         """
         Enumerates the items of this list in batches.
 
         Args:
+            start (int, optional): The index to start from. Defaults to 0.
+            stop (int, optional): The index to stop at. A value of None indicates no stop index.
+                Defaults to None.
             batch_size (int, optional): The number of items to get in each batch.
                 A value of 0 or None indicates a batch size equal to the full length of the list.
                 Defaults to 0.
@@ -52,15 +61,19 @@ class RedisList(RedisKey):
         Returns:
             AsyncIterator[Any]: An iterator that can be used to iterate over the result.
         """
-        start = 0
+        current_start = start
         while True:
-            stop = (start + batch_size - 1) if batch_size else -1
+            possible_stop = current_start + batch_size - 1
+            current_stop = min(possible_stop if stop is None else stop, possible_stop) \
+                if batch_size else (-1 if stop is None else stop)
             len_result = 0
-            for item in await self.get_range(start, stop, encoding=encoding):
+            for item in await self.get_range(current_start, current_stop, encoding=encoding):
                 len_result += 1
                 yield item
-            start = start + len_result
-            if stop == -1 or start <= stop:
+            current_start = current_start + len_result
+            if current_stop == -1 or \
+                current_start <= current_stop or \
+                (stop is not None and current_stop >= stop):
                 break
 
     async def push(self, *value: Tuple, reverse: bool=False) -> Awaitable[int]:
@@ -188,23 +201,39 @@ class RedisList(RedisKey):
 
         return await self._redis.lrem(self._key, count, value)
 
-    async def find_index(self, value: Any, start: int=0, stop: int=-1, encoding='utf-8') -> int:
+    async def find_index(
+        self,
+        value: Any,
+        start: int=0,
+        stop: int=-1,
+        batch_size: int=0,
+        encoding='utf-8',
+    ) -> int:
         """
         Finds the index of the given value, if any.
 
         Args:
             value (Any): The value to look for.
             start (int, optional): The index to start looking from. Defaults to 0.
-            stop (int, optional): The index to stop looking at. Negative indices are offsets from
-                the length of the sequence. Defaults to -1.
+            stop (int, optional): The index to stop at. A value of None indicates no stop index.
+                Defaults to None.
+            batch_size (int, optional): The number of items to get in each batch.
+                A value of 0 or None indicates a batch size equal to the full length of the list.
+                Defaults to 0.
             encoding (str, optional): The encoding to use for decoding values. Defaults to 'utf-8'.
 
         Returns:
             int: The index of the provided value. `None` if not found.
         """
 
-        items = await self.get_range(start=start, stop=stop, encoding=encoding) or []
-        try:
-            return items.index(value) + start
-        except ValueError:
-            return None
+        index = start
+        async for item in self.enumerate(
+            start=start,
+            stop=stop,
+            batch_size=batch_size,
+            encoding=encoding
+        ):
+            if item == value:
+                return index
+            index += 1
+        return None
