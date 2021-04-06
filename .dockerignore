@@ -1,3 +1,4 @@
 Dockerfile
 docker-compose.yaml
 test-reports/
+e2e-reports/

@@ -20,5 +20,7 @@ services:
     command: tox -e e2e-py39
     environment:
       REDIS_URL: redis://redis:6379/0
+    volumes:
+    - ./e2e-reports:/home/test-reports
     depends_on:
     - redis
