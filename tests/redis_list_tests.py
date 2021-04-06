@@ -87,6 +87,110 @@ class RedisListTests(unittest.IsolatedAsyncioTestCase):
             call(key, 10, 14, encoding=encoding)
         ])
 
+    async def test_enumerate_with_start_returns_correct_result(self):
+        items = [MagicMock() for _ in range(10)]
+        redis = AsyncMock()
+        redis.lrange.side_effect = lambda _, start, stop, **__: items[start:stop+1]
+        key = MagicMock()
+        encoding = MagicMock()
+        redis_list = RedisList(redis, key)
+
+        result = [item async for item in redis_list.enumerate(start=3, batch_size=5, encoding=encoding)]
+
+        self.assertEqual(result, items[3:])
+        redis.lrange.assert_has_awaits([
+            call(key, 3, 7, encoding=encoding),
+            call(key, 8, 12, encoding=encoding)
+        ])
+
+    async def test_enumerate_with_start_and_no_batch_size_get_all_at_once(self):
+        items = [MagicMock() for _ in range(10)]
+        redis = AsyncMock()
+        start = 3
+        redis.lrange.return_value = items[start:]
+        key = MagicMock()
+        encoding = MagicMock()
+        redis_list = RedisList(redis, key)
+
+        result = [item async for item in redis_list.enumerate(start=start, encoding=encoding)]
+
+        self.assertEqual(result, items[start:])
+        redis.lrange.assert_awaited_once_with(key, 3, -1, encoding=encoding)
+
+    async def test_enumerate_with_stop_returns_correct_result(self):
+        items = [MagicMock() for _ in range(10)]
+        redis = AsyncMock()
+        redis.lrange.side_effect = lambda _, start, stop, **__: items[start:stop+1]
+        key = MagicMock()
+        encoding = MagicMock()
+        redis_list = RedisList(redis, key)
+
+        result = [item async for item in redis_list.enumerate(stop=6, batch_size=5, encoding=encoding)]
+
+        self.assertEqual(result, items[:7])
+        redis.lrange.assert_has_awaits([
+            call(key, 0, 4, encoding=encoding),
+            call(key, 5, 6, encoding=encoding)
+        ])
+
+    async def test_enumerate_with_stop_and_no_batch_size_gets_all_at_once(self):
+        items = [MagicMock() for _ in range(10)]
+        redis = AsyncMock()
+        stop = 6
+        redis.lrange.return_value = items[:stop+1]
+        key = MagicMock()
+        encoding = MagicMock()
+        redis_list = RedisList(redis, key)
+
+        result = [item async for item in redis_list.enumerate(stop=stop, encoding=encoding)]
+
+        self.assertEqual(result, items[:stop+1])
+        redis.lrange.assert_awaited_once_with(key, 0, stop, encoding=encoding)
+
+    async def test_enumerate_with_start_and_stop_returns_correct_result(self):
+        items = [MagicMock() for _ in range(11)]
+        redis = AsyncMock()
+        redis.lrange.side_effect = lambda _, start, stop, **__: items[start:stop+1]
+        key = MagicMock()
+        encoding = MagicMock()
+        redis_list = RedisList(redis, key)
+
+        result = [
+            item async for item in redis_list.enumerate(
+                start=3,
+                stop=9,
+                batch_size=5,
+                encoding=encoding
+            )
+        ]
+
+        self.assertEqual(result, items[3:10])
+        redis.lrange.assert_has_awaits([
+            call(key, 3, 7, encoding=encoding),
+            call(key, 8, 9, encoding=encoding)
+        ])
+
+    async def test_enumerate_with_start_and_stop_and_no_batch_size_gets_all_at_once(self):
+        items = [MagicMock() for _ in range(10)]
+        redis = AsyncMock()
+        start = 3
+        stop = 6
+        redis.lrange.return_value = items[start:stop+1]
+        key = MagicMock()
+        encoding = MagicMock()
+        redis_list = RedisList(redis, key)
+
+        result = [
+            item async for item in redis_list.enumerate(
+                start=start,
+                stop=stop,
+                encoding=encoding
+            )
+        ]
+
+        self.assertEqual(result, items[start:stop+1])
+        redis.lrange.assert_awaited_once_with(key, 3, 6, encoding=encoding)
+
     async def test_push_with_none_value_does_nothing(self):
         key = MagicMock()
         redis_list = RedisList(None, key)
@@ -318,17 +422,24 @@ class RedisListTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_find_index_when_value_present_returns_index(self):
         redis = AsyncMock()
-        redis.lrange.return_value = ['test', 'this', 'for', 'me']
+        redis.lrange.side_effect = [
+            ['test', 'this'],
+            ['for', 'me']
+        ]
         key = MagicMock()
         redis_list = RedisList(redis, key)
         start = 0
-        stop = MagicMock()
+        stop = 3
+        batch_size = 2
         encoding = MagicMock()
 
-        result = await redis_list.find_index('for', start=start, stop=stop, encoding=encoding)
+        result = await redis_list.find_index('for', start=start, stop=stop, batch_size=batch_size, encoding=encoding)
 
-        redis.lrange.assert_awaited_once_with(key, start, stop, encoding=encoding)
         self.assertEqual(result, 2)
+        redis.lrange.assert_has_awaits([
+            call(key, 0, 1, encoding=encoding),
+            call(key, 2, 3, encoding=encoding)
+        ])
 
     async def test_find_index_when_value_not_present_returns_none(self):
         redis = AsyncMock()
@@ -350,3 +461,33 @@ class RedisListTests(unittest.IsolatedAsyncioTestCase):
         result = await redis_list.find_index('me', start=start)
 
         self.assertEqual(result, 8)
+
+    async def test_find_index_with_stop_finds_result(self):
+        redis = AsyncMock()
+        redis.lrange.side_effect = [
+            ['test', 'this', 'for', 'me'],
+            ['because', 'something', 'happened']
+        ]
+        key = MagicMock()
+        redis_list = RedisList(redis, key)
+        start = 5
+        stop = 12
+
+        result = await redis_list.find_index('something', start=start, stop=stop, batch_size=4)
+
+        self.assertEqual(result, 10)
+
+    async def test_find_index_with_stop_uses_stop(self):
+        redis = AsyncMock()
+        redis.lrange.side_effect = [
+            ['test', 'this', 'for', 'me'],
+            ['because']
+        ]
+        key = MagicMock()
+        redis_list = RedisList(redis, key)
+        start = 5
+        stop = 9
+
+        result = await redis_list.find_index('something', start=start, stop=stop, batch_size=4)
+
+        self.assertIsNone(result)
