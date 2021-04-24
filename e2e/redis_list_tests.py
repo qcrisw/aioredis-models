@@ -50,3 +50,25 @@ class RedisListTests(RedisTests):
         result = await self._redis_list.find_index('code', start=1, batch_size=2)
 
         self.assertIsNone(result)
+
+    async def test_enqueue_pushes_values_to_beginning_of_list(self):
+        values = ['these', 'are', 'some', 'values']
+
+        result = await self._redis_list.enqueue(*values[0:3])
+
+        self.assertEqual(3, result)
+        self.assertEqual(values[2::-1], await self._redis_list.get_range())
+
+        result = await self._redis_list.enqueue(values[3])
+
+        self.assertEqual(4, result)
+        self.assertEqual(values[3:] + values[2::-1], await self._redis_list.get_range())
+
+    async def test_dequeue_dequeues_value_from_end(self):
+        values = ['these', 'are', 'some', 'values']
+        await self._redis_list.enqueue(*values)
+
+        for i in range(len(values)):
+            result = await self._redis_list.dequeue()
+
+            self.assertEqual(values[i], result)
