@@ -121,7 +121,7 @@ class RedisList(RedisKey):
 
         if reverse and block:
             func = partial(self._redis.brpop, timeout=timeout_seconds)
-        elif reverse and not block:
+        elif reverse:
             func = self._redis.rpop
         elif block:
             func = partial(self._redis.blpop, timeout=timeout_seconds)
@@ -129,6 +129,47 @@ class RedisList(RedisKey):
             func = self._redis.lpop
 
         return await func(self._key, encoding=encoding)
+
+    async def enqueue(self, *value: Tuple) -> Awaitable[int]:
+        """
+        Enqueues the given values into the list.
+
+        Args:
+            value (Tuple): The values to enqueue.
+
+        Returns:
+            int: The length of the list after the push operation.
+        """
+
+        return await self.push(*value)
+
+    async def dequeue(
+        self,
+        block: bool=False,
+        timeout_seconds: int=0,
+        encoding='utf-8'
+    ) -> Awaitable[Any]:
+        """
+        Dequeues an item from the list.
+
+        Args:
+            block (bool, optional): Whether to block until an item is available to dequeue.
+                Defaults to `False`.
+            timeout_seconds (int, optional): The amount of time in seconds to wait before giving
+                up. Defaults to 0, which indicates no timeout.
+            encoding (str, optional): The encoding to use for decoding the dequeued value.
+                Defaults to 'utf-8'.
+
+        Returns:
+            Any: The value dequeued from the list, if any.
+        """
+
+        return await self.pop(
+            reverse=True,
+            block=block,
+            timeout_seconds=timeout_seconds,
+            encoding=encoding
+        )
 
     async def move(
         self,

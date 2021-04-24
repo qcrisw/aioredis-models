@@ -252,7 +252,7 @@ class RedisListTests(unittest.IsolatedAsyncioTestCase):
         redis.brpop.assert_awaited_once_with(key, timeout=0, encoding=encoding)
         self.assertEqual(result, redis.brpop.return_value)
 
-    async def test_pop_with_reverse_default_no_block_rpops(self):
+    async def test_pop_with_reverse_and_default_block_rpops(self):
         redis = AsyncMock()
         key = MagicMock()
         encoding = MagicMock()
@@ -263,7 +263,7 @@ class RedisListTests(unittest.IsolatedAsyncioTestCase):
         redis.rpop.assert_awaited_once_with(key, encoding=encoding)
         self.assertEqual(result, redis.rpop.return_value)
 
-    async def test_pop_with_reverse_not_block_rpops(self):
+    async def test_pop_with_reverse_and_no_block_rpops(self):
         redis = AsyncMock()
         key = MagicMock()
         encoding = MagicMock()
@@ -274,7 +274,7 @@ class RedisListTests(unittest.IsolatedAsyncioTestCase):
         redis.rpop.assert_awaited_once_with(key, encoding=encoding)
         self.assertEqual(result, redis.rpop.return_value)
 
-    async def test_pop_with_reverse_and_block_blpops(self):
+    async def test_pop_with_block_blpops(self):
         redis = AsyncMock()
         key = MagicMock()
         timeout = MagicMock()
@@ -286,7 +286,7 @@ class RedisListTests(unittest.IsolatedAsyncioTestCase):
         redis.blpop.assert_awaited_once_with(key, timeout=timeout, encoding=encoding)
         self.assertEqual(result, redis.blpop.return_value)
 
-    async def test_pop_with_reverse_and_block_and_default_timeout_blpops_with_zero_timeout(self):
+    async def test_pop_with_block_and_default_timeout_blpops_with_zero_timeout(self):
         redis = AsyncMock()
         key = MagicMock()
         redis_list = RedisList(redis, key)
@@ -296,7 +296,7 @@ class RedisListTests(unittest.IsolatedAsyncioTestCase):
         redis.blpop.assert_awaited_once_with(key, timeout=0, encoding='utf-8')
         self.assertEqual(result, redis.blpop.return_value)
 
-    async def test_pop_with_reverse_default_no_block_lpops(self):
+    async def test_pop_with_default_block_lpops(self):
         redis = AsyncMock()
         key = MagicMock()
         redis_list = RedisList(redis, key)
@@ -306,7 +306,7 @@ class RedisListTests(unittest.IsolatedAsyncioTestCase):
         redis.lpop.assert_awaited_once_with(key, encoding='utf-8')
         self.assertEqual(result, redis.lpop.return_value)
 
-    async def test_pop_with_reverse_not_block_lpops(self):
+    async def test_pop_with_no_block_lpops(self):
         redis = AsyncMock()
         key = MagicMock()
         encoding = MagicMock()
@@ -316,6 +316,59 @@ class RedisListTests(unittest.IsolatedAsyncioTestCase):
 
         redis.lpop.assert_awaited_once_with(key, encoding=encoding)
         self.assertEqual(result, redis.lpop.return_value)
+
+    async def test_enqueue_with_none_value_does_nothing(self):
+        key = MagicMock()
+        redis_list = RedisList(None, key)
+
+        result = await redis_list.enqueue(None)
+
+        self.assertIsNone(result)
+
+    async def test_enqueue_with_values_lpushes(self):
+        redis = AsyncMock()
+        key = MagicMock()
+        redis_list = RedisList(redis, key)
+        values = [MagicMock() for _ in range(8)]
+
+        result = await redis_list.enqueue(*values)
+
+        redis.lpush.assert_awaited_once_with(key, *values)
+        self.assertEqual(result, redis.lpush.return_value)
+
+    async def test_dequeue_with_block_brpops(self):
+        redis = AsyncMock()
+        key = MagicMock()
+        timeout = MagicMock()
+        encoding = MagicMock()
+        redis_list = RedisList(redis, key)
+
+        result = await redis_list.dequeue(block=True, timeout_seconds=timeout, encoding=encoding)
+
+        redis.brpop.assert_awaited_once_with(key, timeout=timeout, encoding=encoding)
+        self.assertEqual(result, redis.brpop.return_value)
+
+    async def test_dequeue_with_block_and_default_timeout_brpops_with_zero_timeout(self):
+        redis = AsyncMock()
+        key = MagicMock()
+        encoding = MagicMock()
+        redis_list = RedisList(redis, key)
+
+        result = await redis_list.dequeue(block=True, encoding=encoding)
+
+        redis.brpop.assert_awaited_once_with(key, timeout=0, encoding=encoding)
+        self.assertEqual(result, redis.brpop.return_value)
+
+    async def test_dequeue_with_no_block_rpops(self):
+        redis = AsyncMock()
+        key = MagicMock()
+        encoding = MagicMock()
+        redis_list = RedisList(redis, key)
+
+        result = await redis_list.dequeue(encoding=encoding)
+
+        redis.rpop.assert_awaited_once_with(key, encoding=encoding)
+        self.assertEqual(result, redis.rpop.return_value)
 
     async def test_move_with_block_brpoplpushes(self):
         redis = AsyncMock()
