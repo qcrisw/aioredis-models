@@ -3,7 +3,7 @@ This module contains the following classes:
 - RedisString: Represents a string stored in Redis.
 """
 
-from typing import Union
+from typing import Awaitable, Union
 from .redis_key import RedisKey
 
 
@@ -12,32 +12,32 @@ class RedisString(RedisKey):
     Represents a string stored in Redis.
     """
 
-    async def length(self) -> int:
+    def length(self) -> Awaitable[int]:
         """
         Gets the length of the string.
 
         Returns:
-            int: The length of the string.
+            Awaitable[int]: The length of the string.
         """
 
-        return await self._redis.strlen(self._key)
+        return self.get_connection().strlen(self._key)
 
-    async def get(self, encoding='utf-8') -> str:
+    def get(self, encoding='utf-8') -> Awaitable[str]:
         """
         Gets the stored value of the string.
 
         Returns:
-            str: The value of the string.
+            Awaitable[str]: The value of the string.
         """
 
-        return await self._redis.get(self._key, encoding=encoding)
+        return self.get_connection().get(self._key, encoding=encoding)
 
-    async def set(
+    def set(
         self,
         value: Union[str, int, float],  # pylint:disable=unsubscriptable-object
         timeout_seconds: Union[int, float]=None,  # pylint:disable=unsubscriptable-object
         if_exists_equals: bool=None
-    ):
+    ) -> Awaitable:
         """
         Sets the string to a given value.
 
@@ -50,6 +50,9 @@ class RedisString(RedisKey):
                 if `False`, will only set this value if key does not already exist;
                 if `None`, the value will always be set regardless of whether it already exists or
                 not. Defaults to `None`.
+
+        Returns:
+            Awaitable: The result of the operation.
         """
 
         if if_exists_equals is True:
@@ -58,7 +61,7 @@ class RedisString(RedisKey):
             exist = 'SET_IF_NOT_EXIST'
         else:
             exist = None
-        return await self._redis.set(
+        return self.get_connection().set(
             self._key,
             value,
             pexpire=round(timeout_seconds * 1000) if timeout_seconds else None,

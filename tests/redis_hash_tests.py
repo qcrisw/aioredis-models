@@ -9,102 +9,102 @@ class RedisHashTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIsInstance(redis_hash, RedisHash)
 
-    async def test_length_returns_length(self):
-        redis = AsyncMock()
+    def test_length_returns_length(self):
+        redis = MagicMock()
         key = MagicMock()
         redis_hash = RedisHash(redis, key)
 
-        result = await redis_hash.length()
+        result = redis_hash.length()
 
         redis.hlen.assert_called_once_with(key)
         self.assertEqual(result, redis.hlen.return_value)
 
-    async def test_field_length_returns_field_length(self):
-        redis = AsyncMock()
+    def test_field_length_returns_field_length(self):
+        redis = MagicMock()
         key = MagicMock()
         redis_hash = RedisHash(redis, key)
         field = MagicMock()
 
-        result = await redis_hash.field_length(field)
+        result = redis_hash.field_length(field)
 
         redis.hstrlen.assert_called_once_with(key, field)
         self.assertEqual(result, redis.hstrlen.return_value)
 
-    async def test_field_exists_works_correctly(self):
-        redis = AsyncMock()
+    def test_field_exists_works_correctly(self):
+        redis = MagicMock()
         key = MagicMock()
         redis_hash = RedisHash(redis, key)
         field = MagicMock()
 
-        result = await redis_hash.field_exists(field)
+        result = redis_hash.field_exists(field)
 
-        redis.hexists.assert_awaited_once_with(key, field)
+        redis.hexists.assert_called_once_with(key, field)
         self.assertEqual(result, redis.hexists.return_value)
 
-    async def test_field_works_correctly(self):
+    def test_fields_works_correctly(self):
         fields = [MagicMock() for _ in range(7)]
-        redis = AsyncMock()
+        redis = MagicMock()
         redis.hkeys.return_value = fields
         key = MagicMock()
         encoding = MagicMock()
         redis_hash = RedisHash(redis, key)
 
-        result = await redis_hash.fields(encoding=encoding)
+        result = redis_hash.fields(encoding=encoding)
 
-        redis.hkeys.assert_awaited_once_with(key, encoding=encoding)
-        self.assertEqual(result, set(fields))
+        redis.hkeys.assert_called_once_with(key, encoding=encoding)
+        self.assertEqual(result, fields)
 
-    async def test_field_with_default_encoding_uses_utf8(self):
-        redis = AsyncMock()
+    def test_fields_with_default_encoding_uses_utf8(self):
+        redis = MagicMock()
         key = MagicMock()
         redis_hash = RedisHash(redis, key)
 
-        await redis_hash.fields()
+        redis_hash.fields()
 
-        redis.hkeys.assert_awaited_once_with(key, encoding='utf-8')
+        redis.hkeys.assert_called_once_with(key, encoding='utf-8')
 
-    async def test_get_all_works_correctly(self):
-        redis = AsyncMock()
+    def test_get_all_works_correctly(self):
+        redis = MagicMock()
         key = MagicMock()
         redis_hash = RedisHash(redis, key)
         encoding = MagicMock()
 
-        result = await redis_hash.get_all(encoding=encoding)
+        result = redis_hash.get_all(encoding=encoding)
 
-        redis.hgetall.assert_awaited_once_with(key, encoding=encoding)
+        redis.hgetall.assert_called_once_with(key, encoding=encoding)
         self.assertEqual(result, redis.hgetall.return_value)
 
-    async def test_get_all_with_default_encoding_uses_utf8(self):
-        redis = AsyncMock()
+    def test_get_all_with_default_encoding_uses_utf8(self):
+        redis = MagicMock()
         key = MagicMock()
         redis_hash = RedisHash(redis, key)
 
-        result = await redis_hash.get_all()
+        result = redis_hash.get_all()
 
-        redis.hgetall.assert_awaited_once_with(key, encoding='utf-8')
+        redis.hgetall.assert_called_once_with(key, encoding='utf-8')
         self.assertEqual(result, redis.hgetall.return_value)
 
-    async def test_get_gets_field(self):
-        redis = AsyncMock()
+    def test_get_gets_field(self):
+        redis = MagicMock()
         key = MagicMock()
         redis_hash = RedisHash(redis, key)
         field = MagicMock()
         encoding = MagicMock()
 
-        result = await redis_hash.get(field, encoding=encoding)
+        result = redis_hash.get(field, encoding=encoding)
 
-        redis.hget.assert_awaited_once_with(key, field, encoding=encoding)
+        redis.hget.assert_called_once_with(key, field, encoding=encoding)
         self.assertEqual(result, redis.hget.return_value)
 
-    async def test_get_with_default_encoding_uses_utf8(self):
-        redis = AsyncMock()
+    def test_get_with_default_encoding_uses_utf8(self):
+        redis = MagicMock()
         key = MagicMock()
         redis_hash = RedisHash(redis, key)
         field = MagicMock()
 
-        await redis_hash.get(field)
+        redis_hash.get(field)
 
-        redis.hget.assert_awaited_once_with(key, field, encoding='utf-8')
+        redis.hget.assert_called_once_with(key, field, encoding='utf-8')
 
     async def test_enumerate_with_none_encoding_enumerates_items(self):
         redis = AsyncMock()
@@ -209,15 +209,15 @@ class RedisHashTests(unittest.IsolatedAsyncioTestCase):
 
         await redis_hash.set_all(None)
 
-    async def test_set_all_with_value_sets_all(self):
-        redis = AsyncMock()
+    def test_set_all_with_value_sets_all(self):
+        redis = MagicMock()
         key = MagicMock()
         redis_hash = RedisHash(redis, key)
         values = MagicMock()
 
-        result = await redis_hash.set_all(values)
+        result = redis_hash.set_all(values)
 
-        redis.hmset_dict.assert_awaited_once_with(key, values)
+        redis.hmset_dict.assert_called_once_with(key, values)
         self.assertEqual(result, redis.hmset_dict.return_value)
 
     async def test_set_with_none_value_does_nothing(self):
@@ -226,25 +226,25 @@ class RedisHashTests(unittest.IsolatedAsyncioTestCase):
 
         await redis_hash.set(MagicMock(), None)
 
-    async def test_set_with_value_set(self):
-        redis = AsyncMock()
+    def test_set_with_value_set(self):
+        redis = MagicMock()
         key = MagicMock()
         redis_hash = RedisHash(redis, key)
         field = MagicMock()
         value = MagicMock()
 
-        result = await redis_hash.set(field, value)
+        result = redis_hash.set(field, value)
 
-        redis.hset.assert_awaited_once_with(key, field, value)
+        redis.hset.assert_called_once_with(key, field, value)
         self.assertEqual(result, redis.hset.return_value)
 
-    async def test_remove_removes_field(self):
-        redis = AsyncMock()
+    def test_remove_removes_field(self):
+        redis = MagicMock()
         key = MagicMock()
         redis_hash = RedisHash(redis, key)
         field = MagicMock()
 
-        result = await redis_hash.remove(field)
+        result = redis_hash.remove(field)
 
-        redis.hdel.assert_awaited_once_with(key, field)
+        redis.hdel.assert_called_once_with(key, field)
         self.assertEqual(result, redis.hdel.return_value)

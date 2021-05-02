@@ -1,5 +1,7 @@
 """
 This module contains the following classes:
+- RedisClient
+- RedisModel
 - RedisKey
 - RedisList
 - RedisHash
@@ -8,6 +10,8 @@ This module contains the following classes:
 - RedisDoubleHash
 """
 
+from .redis_client import RedisClient
+from .redis_model import RedisModel
 from .redis_key import RedisKey
 from .redis_list import RedisList
 from .redis_hash import RedisHash

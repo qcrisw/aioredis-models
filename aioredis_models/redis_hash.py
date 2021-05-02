@@ -3,8 +3,9 @@ This module contains the following classes:
 - RedisHash: Represents a hash map stored in Redis.
 """
 
-from typing import Set, Any, Awaitable, AsyncIterator
+from typing import List, Any, Awaitable, AsyncIterator
 from .redis_key import RedisKey
+from .asyncio_utils import noop
 
 
 class RedisHash(RedisKey):
@@ -12,7 +13,7 @@ class RedisHash(RedisKey):
     Represents a hash map stored in Redis.
     """
 
-    async def length(self) -> Awaitable[int]:
+    def length(self) -> Awaitable[int]:
         """
         Gets the length of the hash map.
 
@@ -20,9 +21,9 @@ class RedisHash(RedisKey):
             Awaitable[int]: The length of the hash map.
         """
 
-        return await self._redis.hlen(self._key)
+        return self.get_connection().hlen(self._key)
 
-    async def field_length(self, field: str) -> Awaitable[int]:
+    def field_length(self, field: str) -> Awaitable[int]:
         """
         Gets the length of the given field.
 
@@ -33,9 +34,9 @@ class RedisHash(RedisKey):
             Awaitable[int]: The length of the given field.
         """
 
-        return await self._redis.hstrlen(self._key, field)
+        return self.get_connection().hstrlen(self._key, field)
 
-    async def field_exists(self, field: str) -> Awaitable[bool]:
+    def field_exists(self, field: str) -> Awaitable[bool]:
         """
         Checks whether the given field exists.
 
@@ -46,9 +47,9 @@ class RedisHash(RedisKey):
             Awaitable[bool]: Whether the field exists or not.
         """
 
-        return await self._redis.hexists(self._key, field)
+        return self.get_connection().hexists(self._key, field)
 
-    async def fields(self, encoding='utf-8') -> Awaitable[Set]:
+    def fields(self, encoding='utf-8') -> Awaitable[List]:
         """
         Gets all the fields in the hash map.
 
@@ -57,12 +58,12 @@ class RedisHash(RedisKey):
                 'utf-8'.
 
         Returns:
-            Awaitable[Set]: The set of fields in the hash map.
+            Awaitable[List]: The set of fields in the hash map.
         """
 
-        return set(await self._redis.hkeys(self._key, encoding=encoding))
+        return self.get_connection().hkeys(self._key, encoding=encoding)
 
-    async def get_all(self, encoding='utf-8') -> Awaitable[dict]:
+    def get_all(self, encoding='utf-8') -> Awaitable[dict]:
         """
         Gets the entire hash map.
 
@@ -74,9 +75,9 @@ class RedisHash(RedisKey):
             Awaitable[dict]: The hash map.
         """
 
-        return await self._redis.hgetall(self._key, encoding=encoding)
+        return self.get_connection().hgetall(self._key, encoding=encoding)
 
-    async def get(self, field: str, encoding='utf-8') -> Awaitable[Any]:
+    def get(self, field: str, encoding='utf-8') -> Awaitable[Any]:
         """
         Gets the value of the given field in the hash map.
 
@@ -89,7 +90,7 @@ class RedisHash(RedisKey):
             Awaitable[Any]: The value of the field.
         """
 
-        return await self._redis.hget(self._key, field, encoding=encoding)
+        return self.get_connection().hget(self._key, field, encoding=encoding)
 
     async def enumerate(
         self,
@@ -98,7 +99,8 @@ class RedisHash(RedisKey):
         encoding: str='utf-8'
     )-> AsyncIterator[Any]:
         """
-        Enumerates over the items of the hash using HSCAN command.
+        Enumerates over the items of the hash using HSCAN command. This operation is not atomic and
+        cannot be performed transactionally.
 
         Args:
             field_pattern (str, optional): A string to filter fields with, if needed.
@@ -111,7 +113,7 @@ class RedisHash(RedisKey):
         """
         cursor = '0'
         while cursor != 0:
-            cursor, data = await self._redis.hscan(
+            cursor, data = await self.get_connection().hscan(
                 self._key, cursor=cursor, match=field_pattern, count=batch_size
             )
             for key, value in data:
@@ -120,7 +122,7 @@ class RedisHash(RedisKey):
                     value.decode(encoding)
                 )
 
-    async def set_all(self, values: dict):
+    def set_all(self, values: dict):
         """
         Sets the entire hash map to the given `dict`.
 
@@ -129,9 +131,10 @@ class RedisHash(RedisKey):
         """
 
         if values:
-            return await self._redis.hmset_dict(self._key, values)
+            return self.get_connection().hmset_dict(self._key, values)
+        return noop()
 
-    async def set(self, field: str, value: str):
+    def set(self, field: str, value: str):
         """
         Set the value of the given field.
 
@@ -141,9 +144,10 @@ class RedisHash(RedisKey):
         """
 
         if value:
-            return await self._redis.hset(self._key, field, value)
+            return self.get_connection().hset(self._key, field, value)
+        return noop()
 
-    async def remove(self, field: str) -> Awaitable[int]:
+    def remove(self, field: str) -> Awaitable[int]:
         """
         Removes the given field from the hash map.
 
@@ -154,4 +158,4 @@ class RedisHash(RedisKey):
             Awaitable[int]: The number of field removed from the hash map.
         """
 
-        return await self._redis.hdel(self._key, field)
+        return self.get_connection().hdel(self._key, field)

@@ -72,3 +72,14 @@ class RedisListTests(RedisTests):
             result = await self._redis_list.dequeue()
 
             self.assertEqual(values[i], result)
+
+    async def test_transaction_performs_operation(self):
+        values = ['foo', 'bar']
+        async with self._redis_list.begin_transaction() as transaction:
+            transaction.add_operation(*(
+                self._redis_list.push(value) for value in values
+            ))
+
+        result = await self._redis_list.get_range()
+
+        self.assertEqual(result, values[::-1])

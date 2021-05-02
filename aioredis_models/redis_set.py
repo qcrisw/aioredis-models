@@ -3,8 +3,9 @@ This module contains the following classes:
 - RedisSet: Represents a set stored in Redis.
 """
 
-from typing import Set
+from typing import Awaitable, Set
 from .redis_key import RedisKey
+from .asyncio_utils import noop
 
 
 class RedisSet(RedisKey):
@@ -12,17 +13,17 @@ class RedisSet(RedisKey):
     Represents a set stored in Redis.
     """
 
-    async def size(self) -> int:
+    def size(self) -> Awaitable[int]:
         """
         Gets the size of the set.
 
         Returns:
-            int: The size of the set.
+            Awaitable[int]: The size of the set.
         """
 
-        return await self._redis.scard(self._key)
+        return self.get_connection().scard(self._key)
 
-    async def get_all(self, encoding='utf-8') -> Set:
+    def get_all(self, encoding='utf-8') -> Awaitable[Set]:
         """
         Gets all the members of the set.
 
@@ -31,12 +32,12 @@ class RedisSet(RedisKey):
                 'utf-8'.
 
         Returns:
-            Set: The members of the set.
+            Awaitable[Set]: The members of the set.
         """
 
-        return await self._redis.smembers(self._key, encoding=encoding)
+        return self.get_connection().smembers(self._key, encoding=encoding)
 
-    async def add(self, value: str) -> int:
+    def add(self, value: str) -> Awaitable[int]:
         """
         Adds an item to the set.
 
@@ -44,13 +45,12 @@ class RedisSet(RedisKey):
             value (str): The item to add.
 
         Returns:
-            int: The number of items that were added to the set.
+            Awaitable[int]: The number of items that were added to the set.
         """
 
-        if value is not None:
-            return await self._redis.sadd(self._key, value)
+        return noop() if value is None else self.get_connection().sadd(self._key, value)
 
-    async def remove(self, value: str) -> int:
+    def remove(self, value: str) -> Awaitable[int]:
         """
         Removes an item from the set.
 
@@ -58,7 +58,7 @@ class RedisSet(RedisKey):
             value (str): The item to remove.
 
         Returns:
-            int: The number of elements that were removed from the set.
+            Awaitable[int]: The number of elements that were removed from the set.
         """
 
-        return await self._redis.srem(self._key, value)
+        return self.get_connection().srem(self._key, value)
