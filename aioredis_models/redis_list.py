@@ -5,6 +5,7 @@
 from functools import partial
 from typing import List, Tuple, Any, Awaitable, AsyncIterator
 from .redis_key import RedisKey
+from .asyncio_utils import noop
 
 
 class RedisList(RedisKey):
@@ -12,17 +13,17 @@ class RedisList(RedisKey):
     Represents a list store in Redis.
     """
 
-    async def length(self) -> Awaitable[int]:
+    def length(self) -> Awaitable[int]:
         """
         Gets the length of the list.
 
         Returns:
-            int: The length of the list.
+            Awaitable[int]: The length of the list.
         """
 
-        return await self._redis.llen(self._key)
+        return self.get_connection().llen(self._key)
 
-    async def get_range(self, start: int=0, stop: int=-1, encoding='utf-8') -> Awaitable[List]:
+    def get_range(self, start: int=0, stop: int=-1, encoding='utf-8') -> Awaitable[List]:
         """
         Gets the given sub-sequence of the list.
 
@@ -34,10 +35,10 @@ class RedisList(RedisKey):
                 to 'utf-8'.
 
         Returns:
-            List: The retrieved range as a list.
+            Awaitable[List]: The retrieved range as a list.
         """
 
-        return await self._redis.lrange(self._key, start, stop, encoding=encoding)
+        return self.get_connection().lrange(self._key, start, stop, encoding=encoding)
 
     async def enumerate(
         self,
@@ -47,7 +48,8 @@ class RedisList(RedisKey):
         encoding='utf-8'
     ) -> AsyncIterator[Any]:
         """
-        Enumerates the items of this list in batches.
+        Enumerates the items of this list in batches. This operation is not atomic and cannot be
+        performed transactionally.
 
         Args:
             start (int, optional): The index to start from. Defaults to 0.
@@ -76,7 +78,7 @@ class RedisList(RedisKey):
                 (stop is not None and current_stop >= stop):
                 break
 
-    async def push(self, *value: Tuple, reverse: bool=False) -> Awaitable[int]:
+    def push(self, *value: Tuple, reverse: bool=False) -> Awaitable[int]:
         """
         Pushes the given values into the list.
 
@@ -86,16 +88,16 @@ class RedisList(RedisKey):
                 to `False`.
 
         Returns:
-            int: The length of the list after the push operation.
+            Awaitable[int]: The length of the list after the push operation.
         """
 
         value = list(filter(None, value))
         if not value:
-            return
-        func = self._redis.rpush if reverse else self._redis.lpush
-        return await func(self._key, *value)
+            return noop()
+        func = self.get_connection().rpush if reverse else self.get_connection().lpush
+        return func(self._key, *value)
 
-    async def pop(
+    def pop(
         self,
         reverse: bool=False,
         block: bool=False,
@@ -116,21 +118,21 @@ class RedisList(RedisKey):
                 to 'utf-8'.
 
         Returns:
-            Any: The value popped from the list, if any.
+            Awaitable[Any]: The value popped from the list, if any.
         """
 
         if reverse and block:
-            func = partial(self._redis.brpop, timeout=timeout_seconds)
+            func = partial(self.get_connection().brpop, timeout=timeout_seconds)
         elif reverse:
-            func = self._redis.rpop
+            func = self.get_connection().rpop
         elif block:
-            func = partial(self._redis.blpop, timeout=timeout_seconds)
+            func = partial(self.get_connection().blpop, timeout=timeout_seconds)
         else:
-            func = self._redis.lpop
+            func = self.get_connection().lpop
 
-        return await func(self._key, encoding=encoding)
+        return func(self._key, encoding=encoding)
 
-    async def enqueue(self, *value: Tuple) -> Awaitable[int]:
+    def enqueue(self, *value: Tuple) -> Awaitable[int]:
         """
         Enqueues the given values into the list.
 
@@ -138,12 +140,12 @@ class RedisList(RedisKey):
             value (Tuple): The values to enqueue.
 
         Returns:
-            int: The length of the list after the push operation.
+            Awaitable[int]: The length of the list after the push operation.
         """
 
-        return await self.push(*value)
+        return self.push(*value)
 
-    async def dequeue(
+    def dequeue(
         self,
         block: bool=False,
         timeout_seconds: int=0,
@@ -161,24 +163,25 @@ class RedisList(RedisKey):
                 Defaults to 'utf-8'.
 
         Returns:
-            Any: The value dequeued from the list, if any.
+            Awaitable[Any]: The value dequeued from the list, if any.
         """
 
-        return await self.pop(
+        return self.pop(
             reverse=True,
             block=block,
             timeout_seconds=timeout_seconds,
             encoding=encoding
         )
 
-    async def move(
+    def move(
         self,
         destination_key: str,
         block: bool=False,
         timeout_seconds: int=0,
         encoding='utf-8'
     ) -> Awaitable[Any]:
-        """Moves a value from the end of one list to the beginning of another.
+        """
+        Moves a value from the end of one list to the beginning of another.
 
         Args:
             destination_key (str): The key of the list to move popped item to.
@@ -190,16 +193,16 @@ class RedisList(RedisKey):
                 to 'utf-8'.
 
         Returns:
-            Any: The value popped from the list, if any.
+            Awaitable[Any]: The value popped from the list, if any.
         """
 
         func = partial(
-            self._redis.brpoplpush,
+            self.get_connection().brpoplpush,
             timeout=timeout_seconds
-        ) if block else self._redis.rpoplpush
-        return await func(self._key, destination_key, encoding=encoding)
+        ) if block else self.get_connection().rpoplpush
+        return func(self._key, destination_key, encoding=encoding)
 
-    async def requeue(
+    def requeue(
         self,
         block: bool=False,
         timeout_seconds: int=0,
@@ -217,17 +220,17 @@ class RedisList(RedisKey):
                 to 'utf-8'.
 
         Returns:
-            Any: The value popped from the list, if any.
+            Awaitable[Any]: The value popped from the list, if any.
         """
 
-        return await self.move(
+        return self.move(
             self._key,
             block=block,
             timeout_seconds=timeout_seconds,
             encoding=encoding
         )
 
-    async def remove(self, value: str, count: int=0) -> Awaitable[int]:
+    def remove(self, value: str, count: int=0) -> Awaitable[int]:
         """
         Removes occurrences of the given value from the list.
 
@@ -237,10 +240,10 @@ class RedisList(RedisKey):
                 removes all.
 
         Returns:
-            int: The number of items that were removed.
+            Awaitable[int]: The number of items that were removed.
         """
 
-        return await self._redis.lrem(self._key, count, value)
+        return self.get_connection().lrem(self._key, count, value)
 
     async def find_index(
         self,
@@ -251,7 +254,8 @@ class RedisList(RedisKey):
         encoding='utf-8',
     ) -> int:
         """
-        Finds the index of the given value, if any.
+        Finds the index of the given value, if any. This operation is not atomic and cannot be
+        performed transactionally.
 
         Args:
             value (Any): The value to look for.
@@ -264,7 +268,7 @@ class RedisList(RedisKey):
             encoding (str, optional): The encoding to use for decoding values. Defaults to 'utf-8'.
 
         Returns:
-            int: The index of the provided value. `None` if not found.
+            Awaitable[int]: The index of the provided value. `None` if not found.
         """
 
         index = start

@@ -3,15 +3,17 @@ This module contains the following classes:
 - RedisDoubleHash: Represents a two-way hash map stored in Redis.
 """
 
-from typing import Set
+from typing import Awaitable, Set, Union
 # Aliasing this to avoid confusion with the `set` function below.
 from builtins import set as builtin_set
 from aioredis import Redis
+from .redis_model import RedisModel
+from .redis_client import RedisClient
 from .redis_key import RedisKey
 from .redis_set import RedisSet
 
 
-class RedisDoubleHash:
+class RedisDoubleHash(RedisModel):
     """
     Represents a two-way hash map stored in Redis. Each field can be associated with multiple
     values and each value can be associated with multiple fields. The structure allows for
@@ -19,7 +21,11 @@ class RedisDoubleHash:
     thus referred to as inverted fields.
     """
 
-    def __init__(self, redis: Redis, key: str, inverse_key: str):
+    def __init__(
+        self,
+        redis: Union[Redis, RedisClient],  # pylint:disable=unsubscriptable-object
+        key: str, inverse_key: str
+    ):
         """
         Creates an instance of `RedisDoubleHash`.
 
@@ -29,7 +35,7 @@ class RedisDoubleHash:
             inverse_key (str): The key to use for inverted hash map.
         """
 
-        self._redis = redis
+        super().__init__(redis)
         self._key = key
         self._inverse_key = inverse_key
 
@@ -154,38 +160,38 @@ class RedisDoubleHash:
         await self._sub_delete(False)
         await self._sub_delete(True)
 
-    async def _fields_generic(self, inverse: bool=False) -> Set:
-        return await self._redis.keys(self._get_field_name(
+    def _fields_generic(self, inverse: bool=False) -> Awaitable[Set]:
+        return self.get_connection().keys(self._get_field_name(
             self._inverse_key if inverse else self._key,
             '*'
         ), encoding='utf-8')
 
-    async def _get_field_value(self, key: str, field: str) -> Set:
+    def _get_field_value(self, key: str, field: str) -> Awaitable[Set]:
         sub_set = self._get_redis_set(key, field)
-        return await sub_set.get_all()
+        return sub_set.get_all()
 
-    async def _set_field(self, key: str, field: str, value: str):
+    def _set_field(self, key: str, field: str, value: str):
         sub_set = self._get_redis_set(key, field)
-        return await sub_set.add(value)
+        return sub_set.add(value)
 
-    async def _unset_field(self, key: str, field: str, value: str):
+    def _unset_field(self, key: str, field: str, value: str):
         sub_set = self._get_redis_set(key, field)
-        return await sub_set.remove(value)
+        return sub_set.remove(value)
 
     async def _sub_delete(self, inverse: bool):
         for key in await self._fields_generic(inverse):
-            await RedisKey(self._redis, key).delete()
+            await RedisKey(self.get_connection(), key).delete()
 
     async def _remove_generic(self, key: str, inverse_key: str, field: str):
         sub_set = self._get_redis_set(key, field)
         values = await sub_set.get_all()
         await sub_set.delete()
         for value in values:
-            value_set = RedisSet(self._redis, self._get_field_name(inverse_key, value))
+            value_set = RedisSet(self.get_connection(), self._get_field_name(inverse_key, value))
             await value_set.remove(field)
 
     def _get_redis_set(self, key: str, field: str) -> RedisSet:
-        return RedisSet(self._redis, self._get_field_name(key, field))
+        return RedisSet(self.get_connection(), self._get_field_name(key, field))
 
     @staticmethod
     def _get_field_name(key: str, field: str) -> str:

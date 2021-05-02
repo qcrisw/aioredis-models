@@ -9,14 +9,14 @@ class RedisKeyTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIsInstance(redis_key, RedisKey)
 
-    async def test_delete_deletes(self):
-        redis = AsyncMock()
+    def test_delete_deletes(self):
+        redis = MagicMock()
         key = MagicMock()
         redis_key = RedisKey(redis, key)
 
-        result = await redis_key.delete()
+        result = redis_key.delete()
 
-        redis.delete.assert_awaited_once_with(key)
+        redis.delete.assert_called_once_with(key)
         self.assertEqual(result, redis.delete.return_value)
 
     async def test_exists_when_key_in_redis_returns_true(self):

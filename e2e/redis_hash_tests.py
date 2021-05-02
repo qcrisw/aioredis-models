@@ -24,3 +24,17 @@ class RedisHashTests(RedisTests):
         result = {item async for item in self._redis_hash.enumerate(batch_size=2)}
 
         self.assertEqual(result, set(values.items()))
+
+    async def test_fields_gets_fields(self):
+        values = {
+            'foo': 'bar',
+            'baz': 'bat',
+            'boo': 'hoo',
+            'snow': 'ball',
+            'ball': 'crawl'
+        }
+        await self._redis_hash.set_all(values)
+
+        result = await self._redis_hash.fields()
+
+        self.assertEqual(result, list(values.keys()))
