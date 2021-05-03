@@ -70,7 +70,13 @@ To run directly on the host:
 
 ``` bash
 pip3 install -r requirements.txt
-tox
+tox -e unit-py39
+```
+
+End-to-end tests can also be run with [docker-compose]:
+
+``` bash
+docker-compose up --build e2e-test
 ```
 
 ### Linting
