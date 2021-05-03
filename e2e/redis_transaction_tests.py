@@ -23,15 +23,20 @@ class RedisTransactionTests(RedisTests):
         key = 'something'
         redis_list = self.add_redis_item(RedisList(self._redis, key))
 
+        tx_result = []
         async with redis_list.begin_transaction() as transaction:
             transaction.add_operation(
                 redis_list.enqueue('foo'),
-                redis_list.enqueue('bar')
+                redis_list.get_range(),
+                redis_list.enqueue('bar'),
+                redis_list.length()
             )
+            transaction.set_result_callback(lambda *args: tx_result.extend(args))
 
         result = await redis_list.get_range()
 
         self.assertEqual(result, ['bar', 'foo'])
+        self.assertEqual(tx_result, [1, ['foo'], 2, 2])
 
     async def test_empty_transaction(self):
         key1 = 'something'
