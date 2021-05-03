@@ -3,7 +3,7 @@ This module contains the following classes:
 - RedisDoubleHash: Represents a two-way hash map stored in Redis.
 """
 
-from typing import Awaitable, Set, Union
+from typing import Awaitable, List, Set, Union
 # Aliasing this to avoid confusion with the `set` function below.
 from builtins import set as builtin_set
 from aioredis import Redis
@@ -67,7 +67,7 @@ class RedisDoubleHash(RedisModel):
                 for redis_key in await self._fields_generic(inverse=True)
         )
 
-    def get(self, field: str) -> Awaitable[Set]:
+    def get(self, field: str) -> Awaitable[List]:
         """
         Gets the inverted fields associated with the given field.
 
@@ -75,12 +75,12 @@ class RedisDoubleHash(RedisModel):
             field (str): The field to get.
 
         Returns:
-            Awaitable[Set]: The set of all inverted fields associated with the given field.
+            Awaitable[List]: The list of all inverted fields associated with the given field.
         """
 
         return self._get_field_value(self._key, field)
 
-    def get_inverted(self, field: str) -> Awaitable[Set]:
+    def get_inverted(self, field: str) -> Awaitable[List]:
         """
         Gets the fields associated with the given inverted field (value).
 
@@ -88,7 +88,7 @@ class RedisDoubleHash(RedisModel):
             field (str): The inverted field to get.
 
         Returns:
-            Awaitable[Set]: The set of all fields associated with the given inverted field.
+            Awaitable[List]: The list of all fields associated with the given inverted field.
         """
 
         return self._get_field_value(self._inverse_key, field)
@@ -185,13 +185,13 @@ class RedisDoubleHash(RedisModel):
                 RedisKey(self.get_connection(), key).delete() for key in all_keys
             ))
 
-    def _fields_generic(self, inverse: bool=False) -> Awaitable[Set]:
+    def _fields_generic(self, inverse: bool=False) -> Awaitable[List]:
         return self.get_connection().keys(self._get_field_name(
             self._inverse_key if inverse else self._key,
             '*'
         ), encoding='utf-8')
 
-    def _get_field_value(self, key: str, field: str) -> Awaitable[Set]:
+    def _get_field_value(self, key: str, field: str) -> Awaitable[List]:
         sub_set = self._get_redis_set(key, field)
         return sub_set.get_all()
 

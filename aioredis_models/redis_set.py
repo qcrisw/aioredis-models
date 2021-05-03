@@ -3,7 +3,7 @@ This module contains the following classes:
 - RedisSet: Represents a set stored in Redis.
 """
 
-from typing import Awaitable, Set
+from typing import Awaitable, List
 from .redis_key import RedisKey
 from .asyncio_utils import noop
 
@@ -23,7 +23,7 @@ class RedisSet(RedisKey):
 
         return self.get_connection().scard(self._key)
 
-    def get_all(self, encoding='utf-8') -> Awaitable[Set]:
+    def get_all(self, encoding='utf-8') -> Awaitable[List]:
         """
         Gets all the members of the set.
 
@@ -32,7 +32,7 @@ class RedisSet(RedisKey):
                 'utf-8'.
 
         Returns:
-            Awaitable[Set]: The members of the set.
+            Awaitable[List]: The members of the set.
         """
 
         return self.get_connection().smembers(self._key, encoding=encoding)
