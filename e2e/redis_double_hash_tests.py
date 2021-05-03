@@ -39,7 +39,7 @@ class RedisDoubleHashTests(RedisTests):
         bar = await self._redis_double_hash.get_inverted('bar')
         bat = await self._redis_double_hash.get_inverted('bat')
 
-        self.assertEqual(foo, ['bar', 'bat'])
+        self.assertEqual(set(foo), {'bar', 'bat'})
         self.assertEqual(bar, ['foo'])
         self.assertEqual(bat, ['foo'])
 
@@ -51,7 +51,7 @@ class RedisDoubleHashTests(RedisTests):
         bat = await self._redis_double_hash.get('bat')
         foo = await self._redis_double_hash.get_inverted('foo')
 
-        self.assertEqual(foo, ['bar', 'bat'])
+        self.assertEqual(set(foo), {'bar', 'bat'})
         self.assertEqual(bar, ['foo'])
         self.assertEqual(bat, ['foo'])
 
